@@ -35,6 +35,11 @@ export function PlayBar({ audio, player, durationSec }: Props) {
           </Button>
         </span>
       )}
+      {player.error && (
+        <span role="alert" className="text-sm text-destructive">
+          {player.error}
+        </span>
+      )}
       {audio.url && <audio src={audio.url} {...player.audioProps} />}
     </div>
   )

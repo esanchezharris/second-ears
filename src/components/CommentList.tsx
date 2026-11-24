@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth, useMutations, useUserLookup, type RecordData } from 'deepspace'
 import { Button, ConfirmModal, EmptyState, Textarea } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { DEMO_REVIEWERS } from '@/demo/reviewers'
 import { formatTime } from '@/lib/format'
 import { MAX_COMMENT_LENGTH, type Comment } from '@/types'
 
@@ -95,7 +96,7 @@ function CommentRow({
           {formatTime(comment.data.timeSec)}
         </button>
         <span className="text-muted-foreground">
-          {getName(comment.data.authorId) ?? 'Someone'}
+          {DEMO_REVIEWERS[comment.data.authorId] ?? getName(comment.data.authorId) ?? 'Someone'}
         </span>
         {isMine && draft === null && (
           <span className="ml-auto flex gap-1">

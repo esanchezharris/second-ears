@@ -524,5 +524,120 @@ permissions `false`), `orderBy: 'createdAt'` in `tools.query`.
 ### Corrections by Emilio (Milestone 4)
 
 - He chose the recipient of the email test call (his DeepSpace address).
+- None otherwise reported. He started Milestone 5 on 2026-11-24 without
+  reporting the result of a live check, so the agent does not know whether
+  he ran one.
+
+---
+
+## Milestone 5 — demo session, states, tests, README
+
+### D29. The demo is each visitor's own copy, not one shared track
+
+- **Decision.** "Open the demo session" on `/tracks` calls the `openDemo`
+  action. It creates a normal track owned by the caller, with nine seeded
+  comments from three made-up reviewers. One demo per user; calling it again
+  opens the existing one. Deleting it brings the offer back.
+- **Alternatives.** (a) One shared demo track that every visitor joins as a
+  reviewer. Simpler, but a reviewer cannot see or make the revision list, so
+  the visitor would miss the product's payoff, and visitors would see each
+  other's test comments. (b) Create the demo automatically on first visit: a
+  write on page load, and a deleted demo would keep coming back.
+- **Why.** A solo visitor is the owner of a lived-in session and can try
+  every feature, including sharing and the AI, without uploading anything.
+- **The checklist is not pre-seeded.** The comments are there; the visitor's
+  click on "Make revision list" is a real AI run (about $0.001, under the
+  same limits as any track).
+- **Seeded comments are written directly**, not through `addComment`, so
+  they do not send the first-comment email.
+
+### D30. The demo audio ships with the app as a static file
+
+- **Decision.** Emilio supplied `Sekko - W.mp3` (1.8 MB, 1:56). It was moved
+  to `public/demo/sekko-w.mp3`. A demo track's `audioKey` is that path
+  (`DEMO_AUDIO_KEY`); the audio route serves it from the app's static assets
+  instead of file storage, after the same membership check as any track.
+  `deleteTrack` skips the file delete for a demo.
+- **Peaks.** Computed once by `scripts/make-demo-peaks.mjs` (ffmpeg, same
+  method as the browser uses for an upload) into `src/demo/peaks.json`.
+- **Alternative.** Upload the file to the app owner's storage and point
+  every demo at it. That needs a manual step on production, cannot be
+  reproduced in a local test run, and spends the 128 MB storage budget.
+- **Trade-off.** A static file is public: anyone who knows the URL can
+  download it without signing in. Acceptable for a demo track; Emilio to say
+  if it is not.
+
+### D31. Demo reviewers are names in a file, not rows in `users`
+
+- **Decision.** `src/demo/reviewers.ts` maps three ids to display names; the
+  comment list checks it before the user directory.
+- **Alternative.** `tools.registerUser` to create real `users` rows. The
+  `users` collection is what defines app membership, so that would add three
+  members who are not people.
+
+### D32. The demo comments were written without hearing the track
+
+- The agent cannot listen to audio. It measured loudness over time (quiet
+  first four seconds, a quieter section from 1:00 to 1:24, an ending fade)
+  and wrote plausible mix notes at those points. They are in
+  `src/demo/seed.ts`. Emilio knows the track and should correct any note
+  that is untrue of it.
+
+### D33. Empty, loading and error states
+
+Audit of every page; "a raw exception reaching a user is a defect". Changed:
+
+- **Crash screen.** The scaffold's `ErrorScreen` showed the raw error
+  message, a stack trace and React fix hints to everyone. A deployed build
+  now shows a plain sentence and Reload; development builds keep the details.
+- **Track page.** A failed query used to read "Track not found". It now
+  says the connection failed and offers Reload.
+- **Public listen page.** "Not shared" (404) and "could not load" (anything
+  else) are now different screens; the second has Try again.
+- **Join page.** Shows the actual reason (dead link or no connection) and
+  Try again.
+- **Playback.** If the browser cannot play the file, the play bar says so
+  instead of the button silently doing nothing.
+- **Share panel and revision list.** Say so when their lists fail to load;
+  the revision button waits for the list.
+- **Landing page.** The "Hello world" sentence from Milestone 1 is gone.
+
+Already in place and left as is: loading and empty states for tracks,
+comments and audio; upload validation messages; friendly messages for failed
+server actions; denied record writes surface as toasts.
+
+### D34. Tests
+
+- The multi-user tests asked for by the brief are `tests/session.spec.ts`,
+  `tests/sharing.spec.ts` and `tests/revision.spec.ts`, all on
+  `deepspace/testing`'s `users(N)` fixture: real signed-in accounts in
+  separate browser contexts, plus a signed-out browser.
+- New: `tests/demo.spec.ts` (the solo-visitor path, including pressing Play
+  on the bundled mp3) and `tests/states.spec.ts` (failures forced by
+  intercepting the browser's requests: no paid call, nothing broken on the
+  server).
+
+### Known edges after Milestone 5
+
+- Two `openDemo` requests at the same instant could create two demos. The
+  button disables itself while the first is in flight.
+- The visitor cannot delete the seeded comments (an owner cannot delete
+  other people's comments in this version). They can delete the demo.
+- There is no "connection lost" indicator; the SDK reconnects on its own.
+- Not tested: the message when file storage is full (it comes from the
+  platform), and the "browser could not play the audio" message.
+- The demo audio is a public static file (D30).
+
+### Verification (Milestone 5)
+
+- `npx deepspace test run all` locally: 11 unit tests and 21 browser tests
+  pass.
+- Looked at screenshots of `/tracks` with the demo offer and of the demo
+  session playing.
+- Not verified by the agent: anything signed-in on the live URL.
+
+### Corrections by Emilio (Milestone 5)
+
+- He supplied the demo audio file.
 - None otherwise yet. (To be filled in after his check.)
 

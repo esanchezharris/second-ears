@@ -12,12 +12,15 @@ import type { Env } from '../../worker'
 import {
   MAX_COMMENT_LENGTH,
   MAX_PEAKS,
+  DEMO_AUDIO_KEY,
   MAX_TITLE_LENGTH,
   type Invite,
   type TeamMember,
   type Track,
 } from '../types'
+import { openDemo } from './demo'
 import { notifyOwnerOfFirstComment } from './first-comment-email'
+import { createOwnedTrack } from './owned-track'
 import { makeRevisionList } from './revision-list'
 import { getTrackRole } from './track-access'
 
@@ -53,23 +56,7 @@ const createTrack: ActionHandler<Env> = async ({ userId, params, tools }) => {
     peaks.every((p) => typeof p === 'number' && p >= 0 && p <= 1)
   if (!peaksAreValid) return fail('The waveform data is not valid.')
 
-  const trackId = crypto.randomUUID()
-  const track = await tools.create(
-    'tracks',
-    { trackId, ownerId: userId, title, audioKey, durationSec, peaks, visibility: 'private' },
-    trackId,
-  )
-  if (!track.success) return track
-
-  const membership = await tools.create('team_members', {
-    teamId: trackId,
-    userId,
-    status: 'active',
-    role: 'owner',
-  })
-  if (!membership.success) return membership
-
-  return { success: true, data: { trackId } }
+  return createOwnedTrack(tools, userId, { title, audioKey, durationSec, peaks })
 }
 
 /**
@@ -194,7 +181,9 @@ const deleteTrack: ActionHandler<Env> = async ({ userId, params, tools, env }) =
   if (!track.success) return track
 
   // The file first: storage is the scarce resource, so never strand it.
-  await appFiles(env, { scope: 'self', userId }).delete(track.data.record.data.audioKey)
+  // A demo track has no file of its own: its audio ships with the app.
+  const { audioKey } = track.data.record.data
+  if (audioKey !== DEMO_AUDIO_KEY) await appFiles(env, { scope: 'self', userId }).delete(audioKey)
   await deleteAll(tools, 'comments', { trackId })
   await deleteAll(tools, 'checklist_items', { trackId })
   await deleteAll(tools, 'invites', { trackId })
@@ -213,4 +202,5 @@ export const actions: Record<string, ActionHandler<Env>> = {
   redeemInvite,
   removeReviewer,
   makeRevisionList,
+  openDemo,
 }

@@ -14,7 +14,7 @@ import type { Hono } from 'hono'
 import { AppFileError, appFiles } from 'deepspace/worker'
 import type { ActionTools, VerifyResult } from 'deepspace/worker'
 import { getTrackRole } from '../actions/track-access.js'
-import type { PublicTrack, Track } from '../types.js'
+import { DEMO_AUDIO_KEY, type PublicTrack, type Track } from '../types.js'
 import type { AppContext, Env } from '../../worker.js'
 import { createActionTools } from './action-routes.js'
 
@@ -23,8 +23,14 @@ type ResolveAuth = (req: Request, env: Env) => Promise<VerifyResult | null>
 // Same answer for "no such track" and "not yours", so ids cannot be probed.
 const NOT_FOUND = { error: 'Track not found.' }
 
-/** Stream a track's audio file out of its owner's private storage. */
-async function audioResponse(env: Env, track: Track): Promise<Response> {
+/**
+ * Stream a track's audio file out of its owner's private storage.
+ * A demo track's audio is not in storage: it is a file shipped with the app.
+ */
+async function audioResponse(env: Env, track: Track, requestUrl: string): Promise<Response> {
+  if (track.audioKey === DEMO_AUDIO_KEY) {
+    return env.ASSETS.fetch(new URL(`/${DEMO_AUDIO_KEY}`, requestUrl))
+  }
   try {
     const files = appFiles(env, { scope: 'self', userId: track.ownerId })
     const file = await files.download(track.audioKey)
@@ -66,7 +72,7 @@ export function registerTrackRoutes(app: Hono<AppContext>, resolveAuth: ResolveA
     const track = await tools.get<Track>('tracks', trackId)
     if (!track.success) return c.json(NOT_FOUND, 404)
 
-    return audioResponse(c.env, track.data.record.data)
+    return audioResponse(c.env, track.data.record.data, c.req.url)
   })
 
   // The public routes take no sign-in. They read as the app owner because a
@@ -90,6 +96,6 @@ export function registerTrackRoutes(app: Hono<AppContext>, resolveAuth: ResolveA
     const track = await getPublicTrack(tools, c.req.param('trackId'))
     if (!track) return c.json(NOT_FOUND, 404)
 
-    return audioResponse(c.env, track)
+    return audioResponse(c.env, track, c.req.url)
   })
 }

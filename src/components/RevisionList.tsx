@@ -84,7 +84,7 @@ export function RevisionList({ trackId, comments, onSelectComment }: Props) {
         </div>
         <Button
           className="shrink-0"
-          disabled={isMaking || comments.length === 0}
+          disabled={isMaking || comments.length === 0 || itemsQuery.status !== 'ready'}
           data-testid="make-revision-list"
           onClick={makeList}
         >

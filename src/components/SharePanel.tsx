@@ -50,6 +50,12 @@ export function SharePanel({ trackId, track }: { trackId: string; track: Track }
       data-testid="share-panel"
       className="flex flex-col gap-5 rounded-lg border border-border bg-card p-4"
     >
+      {(inviteQuery.status === 'error' || membersQuery.status === 'error') && (
+        <p role="alert" className="text-sm text-destructive">
+          Could not load the sharing settings. Reload the page to try again.
+        </p>
+      )}
+
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-foreground">Invite reviewers</h2>
         <p className="text-sm text-muted-foreground">

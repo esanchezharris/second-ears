@@ -35,8 +35,8 @@ export default function Landing() {
         </h1>
         <p className="mb-8 max-w-md text-muted-foreground">
           Upload a work-in-progress track, share a link, and collect comments
-          pinned to the exact moment they are about. Hello world: the pipeline
-          works, the product is coming.
+          pinned to the exact moment they are about. Then turn the comments
+          into a revision checklist with one click.
         </p>
         <Link
           to="/home"

@@ -26,9 +26,11 @@ export default function JoinPage() {
   if (join.status === 'error') {
     return (
       <div className="px-6 py-10">
+        {/* The message says what went wrong: a dead link, or no connection. */}
         <EmptyState
-          title="This invite link does not work"
-          description={`${join.error ?? 'The link is not valid.'} Ask the track's owner for a new one.`}
+          title="Could not join this track"
+          description={join.error ?? 'This invite link is not valid any more.'}
+          action={{ label: 'Try again', onClick: join.reload }}
         />
         <p className="text-center text-sm">
           <Link to="/tracks" className="text-primary underline-offset-4 hover:underline">

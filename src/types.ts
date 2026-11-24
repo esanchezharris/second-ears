@@ -71,6 +71,12 @@ export const MAX_COMMENT_LENGTH = 1000
 export const MAX_PEAKS = 2000
 export const MAX_CHECKLIST_TITLE_LENGTH = 200
 
+/**
+ * `audioKey` of every demo track. It is the path of the audio file shipped
+ * with the app (public/demo/), not a key in anyone's file storage.
+ */
+export const DEMO_AUDIO_KEY = 'demo/sekko-w.mp3'
+
 /** What a public, listen-only link shows: no comments, no people, no file key. */
 export type PublicTrack = {
   title: string

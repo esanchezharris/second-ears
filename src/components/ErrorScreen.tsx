@@ -97,9 +97,14 @@ export interface ErrorScreenProps {
 }
 
 export function ErrorScreen({ error, onReset }: ErrorScreenProps) {
-  const decoded = decodeReactError(error)
-  const rawMessage = error instanceof Error ? error.message : typeof error === 'string' ? error : ''
-  const stack = error instanceof Error ? error.stack : undefined
+  // Second Ears: the error text, stack and fix hints help a developer and
+  // mean nothing to a user, so only a development build shows them. A
+  // deployed build shows a plain sentence and the Reload button.
+  const showDetails = import.meta.env.DEV
+  const decoded = showDetails ? decodeReactError(error) : null
+  const rawMessage =
+    showDetails && (error instanceof Error ? error.message : typeof error === 'string' ? error : '')
+  const stack = showDetails && error instanceof Error ? error.stack : undefined
   const reset = onReset ?? (() => window.location.reload())
 
   return (
@@ -117,6 +122,11 @@ export function ErrorScreen({ error, onReset }: ErrorScreenProps) {
         <h1 className="text-lg font-semibold tracking-tight">
           {decoded?.title ?? 'Something went wrong'}
         </h1>
+        {!showDetails && (
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            This page hit a problem it could not recover from. Reload to try again.
+          </p>
+        )}
         {decoded?.explanation && (
           <p className="mt-1.5 text-sm text-muted-foreground">{decoded.explanation}</p>
         )}

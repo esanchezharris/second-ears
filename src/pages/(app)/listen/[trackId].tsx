@@ -20,10 +20,13 @@ import type { PublicTrack } from '@/types'
 export default function ListenPage() {
   const { trackId = '' } = useParams()
 
+  // Resolves to null when the server says this track is not public (404).
+  // Any other failure throws, and gets a retry button instead.
   const track = useAsyncResource(
     async (signal) => {
       const response = await fetch(`/api/public/tracks/${trackId}`, { signal })
-      if (!response.ok) throw new Error('This track is not shared publicly.')
+      if (response.status === 404) return null
+      if (!response.ok) throw new Error('The server could not load this track.')
       return (await response.json()) as PublicTrack
     },
     [trackId],
@@ -32,13 +35,22 @@ export default function ListenPage() {
   if (track.status === 'error') {
     return (
       <EmptyState
+        title="Could not load this track"
+        description="Something went wrong on the way. Check your connection and try again."
+        action={{ label: 'Try again', onClick: track.reload }}
+      />
+    )
+  }
+  if (track.status !== 'ready') {
+    return <p className="px-6 py-10 text-sm text-muted-foreground">Loading track…</p>
+  }
+  if (!track.data) {
+    return (
+      <EmptyState
         title="Nothing to listen to here"
         description="This link is not active. The owner may have switched off public listening."
       />
     )
-  }
-  if (!track.data) {
-    return <p className="px-6 py-10 text-sm text-muted-foreground">Loading track…</p>
   }
   return <Player trackId={trackId} track={track.data} />
 }

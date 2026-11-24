@@ -33,6 +33,19 @@ export default function TrackPage() {
     return <p className="px-6 py-10 text-sm text-muted-foreground">Loading track…</p>
   }
 
+  // A failed query is not the same as "no such track": say so, and offer a way out.
+  if (tracks.status === 'error' || memberships.status === 'error') {
+    return (
+      <div className="px-6 py-10">
+        <EmptyState
+          title="Could not load this track"
+          description="The connection to the server failed. Check your connection and reload."
+          action={{ label: 'Reload', onClick: () => window.location.reload() }}
+        />
+      </div>
+    )
+  }
+
   if (!track || !isMember) {
     return (
       <div className="px-6 py-10">
