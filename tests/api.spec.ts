@@ -24,11 +24,24 @@ test.describe('API tests', () => {
       'createInviteLink',
       'redeemInvite',
       'removeReviewer',
+      'makeRevisionList',
     ]
     for (const action of actions) {
       const res = await request.post(`/api/actions/${action}`, { data: {} })
       expect(res.status(), action).toBe(401)
     }
+  })
+
+  test('integrations cannot be called from a browser, signed out', async ({ request }) => {
+    // AI and email are billed to the app owner, so only server actions reach them.
+    const email = await request.post('/api/integrations/email/send', {
+      data: { to: 'nobody@example.com', subject: 'x', text: 'x' },
+    })
+    expect(email.status()).toBe(404)
+    const ai = await request.post('/api/integrations/anthropic/chat-completion', {
+      data: { messages: [{ role: 'user', content: 'hi' }] },
+    })
+    expect(ai.status()).toBe(404)
   })
 
   test('track audio refuses signed-out callers', async ({ request }) => {

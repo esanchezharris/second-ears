@@ -14,6 +14,8 @@ import { tracksSchema } from './schemas/tracks-schema'
 import { teamMembersSchema } from './schemas/team-members-schema'
 import { commentsSchema } from './schemas/comments-schema'
 import { invitesSchema } from './schemas/invites-schema'
+import { checklistItemsSchema } from './schemas/checklist-items-schema'
+import { paidCallsSchema } from './schemas/paid-calls-schema'
 
 export const schemas: CollectionSchema[] = [
   usersSchema,
@@ -22,4 +24,6 @@ export const schemas: CollectionSchema[] = [
   teamMembersSchema,
   commentsSchema,
   invitesSchema,
+  checklistItemsSchema,
+  paidCallsSchema,
 ]

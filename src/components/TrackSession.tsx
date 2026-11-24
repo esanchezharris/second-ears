@@ -7,7 +7,8 @@
  * come from a presence room (src/hooks/useListeners.ts).
  *
  * Owner and reviewers both land here. The owner also gets the Share and
- * Delete controls; the server enforces that difference, not this file.
+ * Delete controls and the revision list; the server enforces that
+ * difference, not this file.
  */
 
 import { useState } from 'react'
@@ -17,6 +18,7 @@ import { Button, ConfirmModal, useToast } from '@/components/ui'
 import { CommentComposer } from '@/components/CommentComposer'
 import { CommentList } from '@/components/CommentList'
 import { PlayBar } from '@/components/PlayBar'
+import { RevisionList } from '@/components/RevisionList'
 import { SharePanel } from '@/components/SharePanel'
 import { Waveform } from '@/components/Waveform'
 import { useListeners } from '@/hooks/useListeners'
@@ -45,6 +47,13 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
 
   const commentsQuery = useQuery<Comment>('comments', { where: { trackId } })
   const comments = [...commentsQuery.records].sort((a, b) => a.data.timeSec - b.data.timeSec)
+
+  /** Highlight a comment in the list and move the playhead to its moment. */
+  function selectComment(commentId: string) {
+    setSelectedCommentId(commentId)
+    const comment = comments.find((c) => c.recordId === commentId)
+    if (comment) seek(comment.data.timeSec)
+  }
 
   async function deleteTrack() {
     setIsDeleting(true)
@@ -97,7 +106,7 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
         onClose={() => setIsConfirmingDelete(false)}
         onConfirm={deleteTrack}
         title="Delete this track?"
-        description="The audio file and every comment on it will be deleted. This cannot be undone."
+        description="The audio file, every comment on it and the revision list will be deleted. This cannot be undone."
         confirmText="Delete track"
         variant="destructive"
         loading={isDeleting}
@@ -123,11 +132,7 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
             seek(timeSec)
             setCommentTime(timeSec) // a click on the waveform also pins the next comment
           }}
-          onMarkerClick={(commentId) => {
-            setSelectedCommentId(commentId)
-            const comment = comments.find((c) => c.recordId === commentId)
-            if (comment) seek(comment.data.timeSec)
-          }}
+          onMarkerClick={selectComment}
         />
       </section>
 
@@ -137,6 +142,10 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
         onStartTyping={() => setCommentTime((pinned) => pinned ?? currentTime)}
         onAdded={() => setCommentTime(null)}
       />
+
+      {isOwner && (
+        <RevisionList trackId={trackId} comments={comments} onSelectComment={selectComment} />
+      )}
 
       <CommentList
         comments={comments}

@@ -17,6 +17,8 @@ import {
   type TeamMember,
   type Track,
 } from '../types'
+import { notifyOwnerOfFirstComment } from './first-comment-email'
+import { makeRevisionList } from './revision-list'
 import { getTrackRole } from './track-access'
 
 function fail(error: string): ActionResult<never> {
@@ -70,8 +72,11 @@ const createTrack: ActionHandler<Env> = async ({ userId, params, tools }) => {
   return { success: true, data: { trackId } }
 }
 
-/** Add a comment at a moment on a track. Owner and reviewers only. */
-const addComment: ActionHandler<Env> = async ({ userId, params, tools }) => {
+/**
+ * Add a comment at a moment on a track. Owner and reviewers only.
+ * A reviewer's first comment on a track also emails the owner, once.
+ */
+const addComment: ActionHandler<Env> = async ({ userId, params, tools, env }) => {
   const trackId = typeof params.trackId === 'string' ? params.trackId : ''
   const body = typeof params.body === 'string' ? params.body.trim() : ''
   const timeSec = Number(params.timeSec)
@@ -88,6 +93,19 @@ const addComment: ActionHandler<Env> = async ({ userId, params, tools }) => {
 
   const comment = await tools.create('comments', { trackId, authorId: userId, timeSec, body })
   if (!comment.success) return comment
+
+  // The comment is saved. Whatever happens to the email, the commenter must
+  // not see an error for it.
+  try {
+    const track = await tools.get<Track>('tracks', trackId)
+    if (track.success) {
+      const appUrl = `https://${env.APP_NAME}.app.space`
+      const newComment = { authorId: userId, timeSec, body }
+      await notifyOwnerOfFirstComment(tools, appUrl, trackId, track.data.record.data, newComment)
+    }
+  } catch (err) {
+    console.error('[addComment] first-comment email failed:', err)
+  }
 
   return { success: true, data: { commentId: comment.data.recordId } }
 }
@@ -165,7 +183,7 @@ const removeReviewer: ActionHandler<Env> = async ({ userId, params, tools }) => 
   return { success: true, data: { reviewerId } }
 }
 
-/** Delete a track with its audio file, comments and memberships. Owner only. */
+/** Delete a track with its audio file, comments, checklist and memberships. Owner only. */
 const deleteTrack: ActionHandler<Env> = async ({ userId, params, tools, env }) => {
   const trackId = typeof params.trackId === 'string' ? params.trackId : ''
 
@@ -178,6 +196,7 @@ const deleteTrack: ActionHandler<Env> = async ({ userId, params, tools, env }) =
   // The file first: storage is the scarce resource, so never strand it.
   await appFiles(env, { scope: 'self', userId }).delete(track.data.record.data.audioKey)
   await deleteAll(tools, 'comments', { trackId })
+  await deleteAll(tools, 'checklist_items', { trackId })
   await deleteAll(tools, 'invites', { trackId })
   await deleteAll(tools, 'team_members', { teamId: trackId })
   const removed = await tools.remove('tracks', trackId)
@@ -193,4 +212,5 @@ export const actions: Record<string, ActionHandler<Env>> = {
   createInviteLink,
   redeemInvite,
   removeReviewer,
+  makeRevisionList,
 }

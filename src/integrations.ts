@@ -26,5 +26,10 @@ export const integrations: Record<
 > = {
   google: { billing: 'user' },
   composio: { billing: 'user' },
+  // Second Ears: both are paid by the app owner and reached only from server
+  // actions (src/actions/), which rate-limit them. These two lines state the
+  // default out loud; the browser-facing proxy for integrations is closed.
+  anthropic: { billing: 'developer' },
+  email: { billing: 'developer' },
   // openai: { billing: 'developer', anonymous: true },
 }
