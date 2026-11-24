@@ -1,27 +1,39 @@
 /**
  * /t/:trackId — the session page for one track.
  *
- * This file only finds the track. If the query comes back empty, the track
- * either does not exist or the server decided this user may not read it; the
- * page says the same thing in both cases.
+ * This file only decides whether to show the session. It needs two rows, and
+ * the server sends each only to people allowed to read it:
+ *
+ *   - the track itself
+ *   - this user's membership of the track (owner or reviewer)
+ *
+ * If either is missing, the track does not exist or this user has no access;
+ * the page says the same thing in both cases.
+ *
+ * Watching the membership row is what closes the session the moment an owner
+ * removes a reviewer: the row's deletion arrives here live, whereas the track
+ * row itself does not change.
  */
 
 import { Link, useParams } from 'react-router-dom'
-import { useQuery } from 'deepspace'
+import { useAuth, useQuery } from 'deepspace'
 import { EmptyState } from '@/components/ui'
 import { TrackSession } from '@/components/TrackSession'
-import type { Track } from '@/types'
+import type { TeamMember, Track } from '@/types'
 
 export default function TrackPage() {
   const { trackId = '' } = useParams()
-  const { records, status } = useQuery<Track>('tracks', { where: { trackId } })
-  const track = records[0]
+  const { userId } = useAuth()
+  const tracks = useQuery<Track>('tracks', { where: { trackId } })
+  const memberships = useQuery<TeamMember>('team_members', { where: { teamId: trackId, userId } })
+  const track = tracks.records[0]
+  const isMember = memberships.records.length > 0
 
-  if (status === 'loading') {
+  if (tracks.status === 'loading' || memberships.status === 'loading') {
     return <p className="px-6 py-10 text-sm text-muted-foreground">Loading track…</p>
   }
 
-  if (!track) {
+  if (!track || !isMember) {
     return (
       <div className="px-6 py-10">
         <EmptyState

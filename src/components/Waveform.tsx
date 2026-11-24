@@ -1,11 +1,13 @@
 /**
- * Waveform — draws the stored peaks, the playhead, and comment markers.
+ * Waveform — draws the stored peaks, the playhead, the other listeners'
+ * playheads, and comment markers.
  *
  * Everything is positioned by fraction of the track (0..1), so the component
  * needs no resize logic: the SVG stretches to its container.
  */
 
 import { useId, useMemo } from 'react'
+import type { Listener } from '@/hooks/useListeners'
 import { formatTime } from '@/lib/format'
 
 export type WaveformMarker = { id: string; timeSec: number; label: string }
@@ -15,6 +17,8 @@ type Props = {
   durationSec: number
   currentTime: number
   markers: WaveformMarker[]
+  /** Other people in the session right now. */
+  listeners: Listener[]
   /** Called with a time in seconds when the user clicks the waveform. */
   onSeek: (timeSec: number) => void
   onMarkerClick: (markerId: string) => void
@@ -22,7 +26,15 @@ type Props = {
 
 const HEIGHT = 100
 
-export function Waveform({ peaks, durationSec, currentTime, markers, onSeek, onMarkerClick }: Props) {
+export function Waveform({
+  peaks,
+  durationSec,
+  currentTime,
+  markers,
+  listeners,
+  onSeek,
+  onMarkerClick,
+}: Props) {
   const clipId = useId()
   const progress = durationSec > 0 ? Math.min(currentTime / durationSec, 1) : 0
 
@@ -71,6 +83,29 @@ export function Waveform({ peaks, durationSec, currentTime, markers, onSeek, onM
         className="pointer-events-none absolute inset-y-0 w-px bg-foreground"
         style={{ left: `${progress * 100}%` }}
       />
+
+      {/* Other listeners' playheads: a line in their colour with a name tag.
+          Positions arrive four times a second, so the line glides between them. */}
+      {listeners.map((listener) =>
+        listener.timeSec === null ? null : (
+          <div
+            key={listener.userId}
+            data-testid="listener-playhead"
+            className="pointer-events-none absolute inset-y-0 w-0.5 transition-[left] duration-200 ease-linear"
+            style={{
+              left: `${Math.min(listener.timeSec / durationSec, 1) * 100}%`,
+              backgroundColor: listener.color,
+            }}
+          >
+            <span
+              className="absolute bottom-full left-0 mb-1 -translate-x-1/2 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-medium text-black"
+              style={{ backgroundColor: listener.color }}
+            >
+              {listener.name}
+            </span>
+          </div>
+        ),
+      )}
 
       {/* Comment markers */}
       {markers.map((marker) => (

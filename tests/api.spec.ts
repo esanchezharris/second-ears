@@ -17,7 +17,15 @@ test.describe('API tests', () => {
   })
 
   test('server actions refuse signed-out callers', async ({ request }) => {
-    for (const action of ['createTrack', 'addComment', 'deleteTrack']) {
+    const actions = [
+      'createTrack',
+      'addComment',
+      'deleteTrack',
+      'createInviteLink',
+      'redeemInvite',
+      'removeReviewer',
+    ]
+    for (const action of actions) {
       const res = await request.post(`/api/actions/${action}`, { data: {} })
       expect(res.status(), action).toBe(401)
     }
@@ -26,5 +34,10 @@ test.describe('API tests', () => {
   test('track audio refuses signed-out callers', async ({ request }) => {
     const res = await request.get('/api/tracks/any-track-id/audio')
     expect(res.status()).toBe(401)
+  })
+
+  test('public track routes answer 404 for a track that is not public', async ({ request }) => {
+    expect((await request.get('/api/public/tracks/any-track-id')).status()).toBe(404)
+    expect((await request.get('/api/public/tracks/any-track-id/audio')).status()).toBe(404)
   })
 })

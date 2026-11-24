@@ -96,11 +96,16 @@ logged under "Corrections by Emilio" so the submission note stays honest.
 
 ### Platform primitives in use (running list)
 
-Auth (`AuthGate`, `useAuth`), records (`useQuery`, `useMutations`), schema
-RBAC (`'team'`, `'own'`, `writableFields`, `uniqueOn`), realtime sync,
-presence rooms (`usePresenceRoom`), file storage (`useR2Files`, `appFiles`),
-server actions, integration proxy, AI (`createDeepSpaceAI`), testing fixture
-(`deepspace/testing`), CLI deploy.
+Planned at Milestone 0: auth (`AuthGate`, `useAuth`), records (`useQuery`,
+`useMutations`), schema RBAC (`'team'`, `'own'`, `writableFields`,
+`uniqueOn`), realtime sync, presence rooms (`usePresenceRoom`), file storage
+(`useR2Files`, `appFiles`), server actions, integration proxy, AI
+(`createDeepSpaceAI`), testing fixture (`deepspace/testing`), CLI deploy.
+
+In use as of Milestone 3: all of the above except the integration proxy and
+AI (Milestone 4). Also `getUserColor`, `useUserLookup`, `useAsyncResource`,
+`getAuthToken`, and the worker helpers `verifyJwt` and
+`authenticatedRoomRequest` (presence gate).
 
 ### Known caveats recorded at plan time
 
@@ -228,3 +233,130 @@ server actions, integration proxy, AI (`createDeepSpaceAI`), testing fixture
 ### Corrections by Emilio (Milestone 2)
 
 - Approved creating two test accounts ("Owner", "Reviewer").
+
+---
+
+## Milestone 3 — roles, share links, presence playheads
+
+### D16. The invite link is a row in an owner-only `invites` collection
+
+- **Decision.** `createInviteLink` (owner only) writes one `invites` row per
+  track. The row's record id is a random UUID and is the secret in
+  `/join/<id>`. `redeemInvite` trades it for a `team_members` row with the
+  role `reviewer`. Making a new link deletes the old one; the owner can also
+  turn the link off by deleting the row (`delete: 'own'` in the schema).
+- **Why.** Only the owner can read the row (`read: 'own'`), so a reviewer
+  cannot look the link up in the app. One reusable link is the smallest thing
+  that matches "share a link".
+- **Alternatives.** (a) A token column on the track: every reviewer could
+  read it, and the public view would have to strip it. (b) One invite per
+  email address: needs an email per invite (owner-billed) and more screens.
+  (c) Expiring links: more rules to explain for little gain in a demo.
+
+### D17. Presence rooms are gated in the worker route
+
+- **Finding.** The SDK's `PresenceRoom` lets in anyone who connects, signed in
+  or not, and the scaffold's route did the same. The docs do not say this
+  either way; the SDK source does.
+- **Decision.** `/ws/presence/:scopeId` now accepts only `track:<trackId>`
+  rooms and only signed-in members of that track (same `getTrackRole` check
+  as the actions).
+- **Why.** Otherwise anyone who learned a track id could watch who is
+  listening and where their playheads are.
+
+### D18. Playheads are throttled to four updates a second, sent only on change
+
+- **Decision.** `useListeners` checks every 250 ms and sends the playhead
+  only if it moved or play/pause changed. An idle listener sends nothing.
+  After a reconnect the first tick re-sends, because the room forgets a
+  listener who disconnects.
+- **Alternative.** Send on every `timeupdate` event: simpler, but the rate is
+  then up to the browser, and the last position before a pause can be lost
+  with a leading-edge throttle.
+
+### D19. The public link is two unauthenticated worker routes and one page
+
+- **Decision.** As planned in D5. `/api/public/tracks/:id` returns title,
+  duration and peaks; `/api/public/tracks/:id/audio` streams the file. Both
+  answer 404 unless `visibility === 'public'`. `/listen/:id` uses only those
+  routes and never opens the records connection for track data. The owner
+  flips `visibility` straight through the schema rule (`update: 'own'`,
+  `writableFields`).
+- **Not done.** No range requests; the listen page downloads the whole file
+  like the session page does.
+
+### D20. The session page also watches the user's own membership row
+
+- **Finding (SDK bug, docs trusted).** The docs say `team_members` must have
+  `teamId`, `userId` and `status` columns. The SDK code that tells a user's
+  open pages to refresh after a membership change reads `record.data.UserId`
+  (capital U), so with the documented column name it never fires. Access
+  itself is always checked correctly; only already-open queries go stale.
+- **Decision.** Keep the documented column names. `/t/:trackId` requires both
+  the track row and the caller's own membership row. The membership row's
+  deletion does arrive live (the user is that row's owner), so a removed
+  reviewer's page closes at once, which also disconnects them from presence.
+- **Alternative not taken.** Renaming the column to `UserId` makes the SDK's
+  refresh fire, but it depends on an undocumented quirk. Emilio's call if he
+  wants it.
+
+### D21. `removeReviewer` added
+
+- **Decision.** Owner-only action that deletes a reviewer's membership row.
+- **Why.** "Owner = everything", and an invite link that can never be undone
+  for a person is a gap a reviewer of this project would ask about.
+
+### D22. `usePlayer` and `PlayBar` shared by the session and listen pages
+
+- **Decision.** Play/pause/seek state and the play row were lifted out of
+  `TrackSession` so the public listen page does not copy them.
+
+### Roles as enforced after Milestone 3
+
+| Who | Read track + comments | Comment | Edit/delete own comment | Share, remove reviewers, delete track | Enforced by |
+|---|---|---|---|---|---|
+| Owner | yes | yes | yes | yes | membership row + owner checks in actions; `update: 'own'` on tracks |
+| Reviewer | yes | yes | yes | no | membership row; `'team'` reads; `'own'` on comments |
+| Viewer (public link, signed in or not) | title, waveform, audio only | no | no | no | public routes return a fixed projection; no records reach them |
+| Signed-in non-member | no | no | no | no | `'team'` reads return nothing; actions and routes check membership |
+
+### Known edges after Milestone 3
+
+- A reviewer who joins sees the new track in an already-open `/tracks` tab
+  only after a reload (the SDK issue in D20). The join flow itself is fine
+  because it opens the track page fresh.
+- Presence lists one entry per user, not per tab. If a user has the track
+  open in two tabs and closes one, their playhead disappears for others until
+  the remaining tab reconnects.
+- A removed reviewer running a modified client could stay in the presence
+  room until their socket drops. They would see names and playhead positions
+  only: no records, comments or audio.
+- Switching the public link off does not claw back audio a listener's
+  browser already downloaded (it may also reuse its cached copy for an hour).
+- Invite links do not expire. A reviewer can forward the link they were
+  sent; the owner's answer is "Replace with a new link" plus "Remove".
+- A signed-in non-member who opens `/t/<id>` of a public track sees "Track
+  not found"; the public view is only at `/listen/<id>`.
+- A reviewer cannot leave a track by themselves.
+- "A reviewer cannot read the invite row" rests on the schema rule; there is
+  no separate test for it.
+- Not exercised by the agent: a signed-out visitor signing in on `/join/...`
+  and being carried through. The signed-out prompt and the signed-in join
+  are each tested; the hand-off between them is Emilio's to check.
+
+### Verification (Milestone 3)
+
+- `npx deepspace test run all` locally: 3 unit tests and 16 browser tests pass.
+- `tests/sharing.spec.ts` (two signed-in accounts in separate browser
+  contexts plus a signed-out browser): no access before the invite; invite
+  makes a reviewer; reviewer has no owner controls and owner-only actions
+  refuse them; reviewer's comment reaches the owner live; each sees the
+  other's name and the owner's playhead moves on the reviewer's page; public
+  link is 404 when off, listen-only when on, 404 again when off; removed
+  reviewer's page closes live and audio, comments and presence refuse them;
+  a replaced invite link stops working; control check that a member can open
+  the presence room.
+
+### Corrections by Emilio (Milestone 3)
+
+- None yet. (To be filled in after his two-browser check.)

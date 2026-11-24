@@ -1,19 +1,20 @@
 /**
- * Loads a track's audio through the access-checked worker route
- * (src/server/track-routes.ts) and exposes it as a local URL for <audio>.
+ * Loads a track's audio from one of the worker routes in
+ * src/server/track-routes.ts and exposes it as a local URL for <audio>.
  *
  * The whole file is downloaded up front (uploads are capped at 20 MB), which
- * keeps seeking instant and lets the request carry the user's token.
+ * keeps seeking instant and lets the request carry the user's token. A
+ * signed-out listener on a public link has no token and sends none.
  */
 
 import { useEffect, useState } from 'react'
 import { getAuthToken, useAsyncResource } from 'deepspace'
 
-export function useTrackAudio(trackId: string) {
+export function useTrackAudio(audioUrl: string) {
   const download = useAsyncResource(
     async (signal) => {
       const token = await getAuthToken()
-      const response = await fetch(`/api/tracks/${trackId}/audio`, {
+      const response = await fetch(audioUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         signal,
       })
@@ -23,7 +24,7 @@ export function useTrackAudio(trackId: string) {
       }
       return response.blob()
     },
-    [trackId],
+    [audioUrl],
   )
 
   // Turn the downloaded bytes into a URL, and release it when no longer used.

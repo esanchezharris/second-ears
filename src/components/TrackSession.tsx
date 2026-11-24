@@ -3,19 +3,26 @@
  * waveform, and read and write comments pinned to moments on it.
  *
  * Comments come from a live query, so a comment added by anyone in the
- * session appears here without a refresh.
+ * session appears here without a refresh. The other listeners' playheads
+ * come from a presence room (src/hooks/useListeners.ts).
+ *
+ * Owner and reviewers both land here. The owner also gets the Share and
+ * Delete controls; the server enforces that difference, not this file.
  */
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, useQuery } from 'deepspace'
 import { Button, ConfirmModal, useToast } from '@/components/ui'
 import { CommentComposer } from '@/components/CommentComposer'
 import { CommentList } from '@/components/CommentList'
+import { PlayBar } from '@/components/PlayBar'
+import { SharePanel } from '@/components/SharePanel'
 import { Waveform } from '@/components/Waveform'
+import { useListeners } from '@/hooks/useListeners'
+import { usePlayer } from '@/hooks/usePlayer'
 import { useTrackAudio } from '@/hooks/useTrackAudio'
 import { callAction } from '@/lib/actions'
-import { formatTime } from '@/lib/format'
 import type { Comment, Track } from '@/types'
 
 export function TrackSession({ trackId, track }: { trackId: string; track: Track }) {
@@ -25,11 +32,12 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
   const isOwner = track.ownerId === userId
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
 
-  const audio = useTrackAudio(trackId)
-  const audioElement = useRef<HTMLAudioElement>(null)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const audio = useTrackAudio(`/api/tracks/${trackId}/audio`)
+  const player = usePlayer()
+  const { currentTime, seek } = player
+  const listeners = useListeners(trackId, currentTime, player.isPlaying)
 
   // Where the next comment will be pinned. null = "wherever the playhead is".
   const [commentTime, setCommentTime] = useState<number | null>(null)
@@ -37,18 +45,6 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
 
   const commentsQuery = useQuery<Comment>('comments', { where: { trackId } })
   const comments = [...commentsQuery.records].sort((a, b) => a.data.timeSec - b.data.timeSec)
-
-  function seek(timeSec: number) {
-    setCurrentTime(timeSec)
-    if (audioElement.current) audioElement.current.currentTime = timeSec
-  }
-
-  function togglePlay() {
-    const element = audioElement.current
-    if (!element) return
-    if (element.paused) void element.play()
-    else element.pause()
-  }
 
   async function deleteTrack() {
     setIsDeleting(true)
@@ -69,11 +65,32 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
           {track.title}
         </h1>
         {isOwner && (
-          <Button variant="outline" size="sm" onClick={() => setIsConfirmingDelete(true)}>
-            Delete track
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" data-testid="share-button" onClick={() => setIsSharing(!isSharing)}>
+              {isSharing ? 'Close sharing' : 'Share'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsConfirmingDelete(true)}>
+              Delete track
+            </Button>
+          </div>
         )}
       </header>
+
+      {isOwner && isSharing && <SharePanel trackId={trackId} track={track} />}
+
+      <p
+        className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"
+        data-testid="listeners"
+      >
+        Here now:
+        <span>You</span>
+        {listeners.map((listener) => (
+          <span key={listener.userId} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: listener.color }} />
+            {listener.name}
+          </span>
+        ))}
+      </p>
 
       <ConfirmModal
         open={isConfirmingDelete}
@@ -87,24 +104,9 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
       />
 
       <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <Button onClick={togglePlay} disabled={!audio.url} data-testid="play-button">
-            {isPlaying ? 'Pause' : 'Play'}
-          </Button>
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {formatTime(currentTime)} / {formatTime(track.durationSec)}
-          </span>
-          {audio.status === 'loading' && (
-            <span className="text-sm text-muted-foreground">Loading audio…</span>
-          )}
-          {audio.status === 'error' && (
-            <span role="alert" className="flex items-center gap-2 text-sm text-destructive">
-              {audio.error}
-              <Button variant="outline" size="sm" onClick={audio.retry}>
-                Retry
-              </Button>
-            </span>
-          )}
+        {/* The bottom margin leaves room for the listeners' name tags. */}
+        <div className="mb-4">
+          <PlayBar audio={audio} player={player} durationSec={track.durationSec} />
         </div>
 
         <Waveform
@@ -116,6 +118,7 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
             timeSec: c.data.timeSec,
             label: c.data.body,
           }))}
+          listeners={listeners}
           onSeek={(timeSec) => {
             seek(timeSec)
             setCommentTime(timeSec) // a click on the waveform also pins the next comment
@@ -126,16 +129,6 @@ export function TrackSession({ trackId, track }: { trackId: string; track: Track
             if (comment) seek(comment.data.timeSec)
           }}
         />
-
-        {audio.url && (
-          <audio
-            ref={audioElement}
-            src={audio.url}
-            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
-        )}
       </section>
 
       <CommentComposer

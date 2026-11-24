@@ -4,13 +4,15 @@
  * Caller identity in query parameters and headers is never trusted. Routes
  * scrub it and forward verified JWT identity in internal-only headers; the
  * documents-aware Yjs route additionally resolves an application role from
- * the documents collection.
+ * the documents collection, and the presence route admits track members only.
  */
 
 import type { Context, Hono } from 'hono'
 import { authenticatedRoomRequest, resolveAppRole, verifyJwt } from 'deepspace/worker'
 import type { JwtVerifierConfig, VerifyResult } from 'deepspace/worker'
+import { getTrackRole } from '../actions/track-access.js'
 import type { AppContext, Env } from '../../worker.js'
+import { createActionTools } from './action-routes.js'
 
 function jwtConfig(env: Env): JwtVerifierConfig {
   return { publicKey: env.AUTH_JWT_PUBLIC_KEY, issuer: env.AUTH_JWT_ISSUER }
@@ -150,10 +152,24 @@ export function registerRealtimeRoutes(app: Hono<AppContext>): void {
     ),
   )
 
-  app.get(
-    '/ws/presence/:scopeId',
-    wsRoute((env) => env.PRESENCE_ROOMS),
-  )
+  // Presence rooms have no access rules of their own: anyone who connects
+  // sees everyone in the room. So this route is the gate. The only rooms the
+  // app uses are `track:<trackId>`, and only signed-in members of that track
+  // may join one.
+  app.get('/ws/presence/:scopeId', async (c) => {
+    const scopeId = c.req.param('scopeId')
+    const token = new URL(c.req.url).searchParams.get('token')
+    const auth = token ? (await verifyJwt(jwtConfig(c.env), token)).result : null
+    if (!auth) return new Response('Unauthorized', { status: 401 })
+
+    const trackId = scopeId.startsWith('track:') ? scopeId.slice('track:'.length) : ''
+    const tools = createActionTools(c.env, auth.userId, '')
+    const role = trackId ? await getTrackRole(tools, trackId, auth.userId) : null
+    if (!role) return new Response('Forbidden', { status: 403 })
+
+    const stub = c.env.PRESENCE_ROOMS.get(c.env.PRESENCE_ROOMS.idFromName(scopeId))
+    return stub.fetch(authenticatedRoomRequest(c.req.raw, auth))
+  })
 
   app.get(
     '/ws/cron/:roomId',

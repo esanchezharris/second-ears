@@ -9,7 +9,14 @@
 import { appFiles } from 'deepspace/worker'
 import type { ActionHandler, ActionResult, ActionTools } from 'deepspace/worker'
 import type { Env } from '../../worker'
-import { MAX_COMMENT_LENGTH, MAX_PEAKS, MAX_TITLE_LENGTH, type Track } from '../types'
+import {
+  MAX_COMMENT_LENGTH,
+  MAX_PEAKS,
+  MAX_TITLE_LENGTH,
+  type Invite,
+  type TeamMember,
+  type Track,
+} from '../types'
 import { getTrackRole } from './track-access'
 
 function fail(error: string): ActionResult<never> {
@@ -94,6 +101,70 @@ async function deleteAll(tools: ActionTools, collection: string, where: Record<s
   }
 }
 
+/**
+ * Make a fresh invite link for a track. Owner only. Any earlier link for the
+ * track stops working, so "reset the link" is this same call.
+ */
+const createInviteLink: ActionHandler<Env> = async ({ userId, params, tools }) => {
+  const trackId = typeof params.trackId === 'string' ? params.trackId : ''
+
+  const role = await getTrackRole(tools, trackId, userId)
+  if (role !== 'owner') return fail('Only the owner can share this track.')
+
+  await deleteAll(tools, 'invites', { trackId })
+  // The record id is the secret in the link, so it must be unguessable.
+  const token = crypto.randomUUID()
+  const invite = await tools.create('invites', { trackId, ownerId: userId }, token)
+  if (!invite.success) return invite
+
+  return { success: true, data: { token } }
+}
+
+/** Use an invite link: the caller becomes a reviewer of the link's track. */
+const redeemInvite: ActionHandler<Env> = async ({ userId, params, tools }) => {
+  const token = typeof params.token === 'string' ? params.token : ''
+
+  const invite = token ? await tools.get<Invite>('invites', token) : null
+  if (!invite?.success) return fail('This invite link is not valid any more.')
+  const { trackId } = invite.data.record.data
+
+  // Already on the track: the owner, or a reviewer opening the link again.
+  if (await getTrackRole(tools, trackId, userId)) return { success: true, data: { trackId } }
+
+  const membership = await tools.create('team_members', {
+    teamId: trackId,
+    userId,
+    status: 'active',
+    role: 'reviewer',
+  })
+  // Two requests can race to here. The schema allows one membership per user
+  // per track, so the slower create fails although the user is now a member.
+  if (!membership.success && !(await getTrackRole(tools, trackId, userId))) return membership
+
+  return { success: true, data: { trackId } }
+}
+
+/** Take a reviewer off a track. Owner only; the owner cannot be removed. */
+const removeReviewer: ActionHandler<Env> = async ({ userId, params, tools }) => {
+  const trackId = typeof params.trackId === 'string' ? params.trackId : ''
+  const reviewerId = typeof params.reviewerId === 'string' ? params.reviewerId : ''
+
+  const role = await getTrackRole(tools, trackId, userId)
+  if (role !== 'owner') return fail('Only the owner can remove reviewers.')
+
+  const found = await tools.query<TeamMember>('team_members', {
+    where: { teamId: trackId, userId: reviewerId, role: 'reviewer' },
+    limit: 1,
+  })
+  const membership = found.success ? found.data.records[0] : undefined
+  if (!membership) return fail('That person is not a reviewer of this track.')
+
+  const removed = await tools.remove('team_members', membership.recordId)
+  if (!removed.success) return removed
+
+  return { success: true, data: { reviewerId } }
+}
+
 /** Delete a track with its audio file, comments and memberships. Owner only. */
 const deleteTrack: ActionHandler<Env> = async ({ userId, params, tools, env }) => {
   const trackId = typeof params.trackId === 'string' ? params.trackId : ''
@@ -107,6 +178,7 @@ const deleteTrack: ActionHandler<Env> = async ({ userId, params, tools, env }) =
   // The file first: storage is the scarce resource, so never strand it.
   await appFiles(env, { scope: 'self', userId }).delete(track.data.record.data.audioKey)
   await deleteAll(tools, 'comments', { trackId })
+  await deleteAll(tools, 'invites', { trackId })
   await deleteAll(tools, 'team_members', { teamId: trackId })
   const removed = await tools.remove('tracks', trackId)
   if (!removed.success) return removed
@@ -114,4 +186,11 @@ const deleteTrack: ActionHandler<Env> = async ({ userId, params, tools, env }) =
   return { success: true, data: { trackId } }
 }
 
-export const actions: Record<string, ActionHandler<Env>> = { createTrack, addComment, deleteTrack }
+export const actions: Record<string, ActionHandler<Env>> = {
+  createTrack,
+  addComment,
+  deleteTrack,
+  createInviteLink,
+  redeemInvite,
+  removeReviewer,
+}
