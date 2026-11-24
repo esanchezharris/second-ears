@@ -123,3 +123,29 @@ server actions, integration proxy, AI (`createDeepSpaceAI`), testing fixture
   `starter` template (SDK 0.44.2).
 - **Alternatives.** `copilot` (ships an AI chat dock we do not need),
   `public-board` (anonymous writes, the opposite of our rules).
+
+### D9. DeepSpace source, chosen by Emilio
+
+- **Decision.** The app's source of truth is DeepSpace's own repo. The first
+  deploy claimed it, and the platform says this can never be changed.
+- **Why.** It is the platform default; deploys only ship committed code, and
+  releases and rollback are tied to commits.
+- **Alternative.** GitHub source: deploys ship the working folder even when
+  uncommitted, and DeepSpace push/pull/workspaces are disabled for good.
+- **Follow-up.** A read-only copy can still go to GitHub for graders. Not
+  done yet; needs Emilio's go-ahead because it creates a repo.
+
+### Milestone 1 notes
+
+- The CLI browser login refuses to run without an interactive terminal, so it
+  ran in the app's Terminal panel and Emilio signed in himself.
+- The landing `<title>` comes from `src/seo.ts` (prerendered), not
+  `index.html`. The first deploy still showed the scaffold title; fixed in a
+  second deploy.
+- `npx deepspace test run`: 8 passed (smoke + api). `collab.spec.ts` is not in
+  the default run.
+
+### Corrections by Emilio (Milestone 1)
+
+- Chose DeepSpace source over GitHub source.
+- Chose to sign in through the browser himself.
