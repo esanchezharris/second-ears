@@ -149,3 +149,82 @@ server actions, integration proxy, AI (`createDeepSpaceAI`), testing fixture
 
 - Chose DeepSpace source over GitHub source.
 - Chose to sign in through the browser himself.
+
+---
+
+## Milestone 2 — upload, waveform, comments, realtime sync
+
+### D10. The app owner's `admin` role gets no extra access (change from the plan)
+
+- **Decision.** In `tracks`, `team_members` and `comments`, the `member` and
+  `admin` roles share one rule set. Access comes only from track membership.
+- **Why.** The plan listed "the app owner can read every track" as a caveat.
+  Giving `admin` the same rules removes it at no cost. Server code can still
+  read everything; the app UI and sockets cannot.
+
+### D11. Audio is downloaded whole into the browser before playing
+
+- **Decision.** `useTrackAudio` fetches `/api/tracks/:id/audio` with the
+  user's token, then plays from a local object URL.
+- **Why.** The route needs an `Authorization` header, which an `<audio src>`
+  cannot send. With a 20 MB cap the whole-file download is acceptable and
+  makes seeking instant. It also avoids implementing HTTP range requests.
+- **Alternative.** Stream with range support and cookie auth. More code, and
+  only worth it for files larger than the cap.
+
+### D12. Waveform is one SVG path, not a canvas
+
+- **Decision.** `Waveform.tsx` draws one vertical line per peak in an SVG that
+  stretches to its container; the played part is the same path clipped.
+- **Why.** No resize or device-pixel-ratio code, and markers and playheads
+  are plain elements positioned by percentage.
+
+### D13. A click on the waveform seeks and pins the next comment
+
+- **Decision.** The comment time is the clicked position. If the user starts
+  typing without clicking, the time freezes at the playhead on the first
+  keystroke, so it does not drift while the track plays.
+
+### D14. `deleteTrack` added now (not in the plan)
+
+- **Decision.** Owner-only action that deletes the audio file, comments,
+  memberships and the track.
+- **Why.** Storage is capped at 128 MiB on the free plan, so owners need a
+  way to free it. It also lets tests clean up after themselves, because test
+  uploads go to the real file store.
+
+### D15. `createTrack` checks the audio key belongs to the caller
+
+- **Decision.** The action rejects any `audioKey` outside the caller's own
+  folder (`/users/<their id>/`).
+- **Why.** The audio route serves the file named on the track to its members.
+  Without the check, a caller could name another user's file and get it
+  served to themselves.
+
+### Risks from the plan, now resolved
+
+- **Audio through the worker route works.** `appFiles(...).download()` streams
+  the owner's private file; no fallback to public storage was needed.
+
+### Known edges after Milestone 2
+
+- Peaks use the first audio channel only.
+- Editing a comment's text goes straight through the schema rule, which has
+  no length limit on the server (the 1000-character limit is enforced on
+  create and in the edit box, not on a forged edit).
+- The track title is the file name; renaming is not built yet.
+- No keyboard control of the waveform yet (play/pause button only).
+- Visual design is still the scaffold theme.
+
+### Verification (Milestone 2)
+
+- `npx deepspace test run all` locally: 3 unit tests and 14 browser tests pass.
+- `tests/session.spec.ts` (two test accounts, real file storage): upload,
+  waveform, audio route, live comment in a second tab, non-member lock-out
+  (page, audio, forged comment, forged delete), cleanup.
+- Not verified on the live URL with a signed-in user by the agent: test
+  account passwords are not entered on the production site. Emilio verifies.
+
+### Corrections by Emilio (Milestone 2)
+
+- Approved creating two test accounts ("Owner", "Reviewer").

@@ -15,4 +15,16 @@ test.describe('API tests', () => {
     await page.waitForSelector('[data-testid="app-navigation"]', { timeout: 15000 })
     // If the app loaded and connected, the WS endpoint works
   })
+
+  test('server actions refuse signed-out callers', async ({ request }) => {
+    for (const action of ['createTrack', 'addComment', 'deleteTrack']) {
+      const res = await request.post(`/api/actions/${action}`, { data: {} })
+      expect(res.status(), action).toBe(401)
+    }
+  })
+
+  test('track audio refuses signed-out callers', async ({ request }) => {
+    const res = await request.get('/api/tracks/any-track-id/audio')
+    expect(res.status()).toBe(401)
+  })
 })

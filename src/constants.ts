@@ -1,5 +1,6 @@
-/** App name — replaced by the CLI during scaffolding */
-export const APP_NAME = 'second-ears'
+/** Display name shown in the navigation and page titles. The URL name
+ *  ("second-ears") lives in wrangler.toml and is separate from this. */
+export const APP_NAME = 'Second Ears'
 
 /** Immutable app identity — data scope keys to this, so renames never
  *  strand your records.
