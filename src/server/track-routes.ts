@@ -22,6 +22,7 @@ type ResolveAuth = (req: Request, env: Env) => Promise<VerifyResult | null>
 
 // Same answer for "no such track" and "not yours", so ids cannot be probed.
 const NOT_FOUND = { error: 'Track not found.' }
+const AUDIO_MISSING = { error: 'The audio file for this track is missing.' }
 
 /**
  * Stream a track's audio file out of its owner's private storage.
@@ -29,7 +30,13 @@ const NOT_FOUND = { error: 'Track not found.' }
  */
 async function audioResponse(env: Env, track: Track, requestUrl: string): Promise<Response> {
   if (track.audioKey === DEMO_AUDIO_KEY) {
-    return env.ASSETS.fetch(new URL(`/${DEMO_AUDIO_KEY}`, requestUrl))
+    const asset = await env.ASSETS.fetch(new URL(`/${DEMO_AUDIO_KEY}`, requestUrl))
+    if (!asset.ok) return Response.json(AUDIO_MISSING, { status: 404 })
+    // Name the type ourselves: in production the asset server labels the mp3
+    // as a generic binary file, which some browsers refuse to play.
+    return new Response(asset.body, {
+      headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'private, max-age=3600' },
+    })
   }
   try {
     const files = appFiles(env, { scope: 'self', userId: track.ownerId })
@@ -43,7 +50,7 @@ async function audioResponse(env: Env, track: Track, requestUrl: string): Promis
     })
   } catch (err) {
     if (err instanceof AppFileError && err.status === 404) {
-      return Response.json({ error: 'The audio file for this track is missing.' }, { status: 404 })
+      return Response.json(AUDIO_MISSING, { status: 404 })
     }
     throw err
   }

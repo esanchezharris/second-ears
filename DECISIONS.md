@@ -563,6 +563,10 @@ permissions `false`), `orderBy: 'createdAt'` in `tools.query`.
 - **Alternative.** Upload the file to the app owner's storage and point
   every demo at it. That needs a manual step on production, cannot be
   reproduced in a local test run, and spends the 128 MB storage budget.
+- **Found on the live site.** Production serves the static mp3 as
+  `application/octet-stream` (local dev says `audio/mpeg`), which some
+  browsers will not play. The audio route now sets `audio/mpeg` itself for
+  the demo.
 - **Trade-off.** A static file is public: anyone who knows the URL can
   download it without signing in. Acceptable for a demo track; Emilio to say
   if it is not.
