@@ -7,7 +7,7 @@
 
 Live: https://second-ears.app.space
 Code map and run instructions: [README.md](README.md)
-Every decision with its alternatives: [DECISIONS.md](DECISIONS.md) (D1–D34)
+Every decision with its alternatives: [DECISIONS.md](DECISIONS.md) (D1–D36)
 
 ## 1. What was built
 
@@ -53,7 +53,7 @@ loading, empty and error states on every page.
 | Sign-in | `AuthGate`, `useAuth`, JWT verification in the worker | Platform auth; nothing hand-rolled |
 | Data and live updates | records (`useQuery`, `useMutations`) | Realtime sync comes with the records; no websocket code |
 | Per-track roles | `team_members` rows with the `'team'` permission level | Built-in roles are app-wide; the product needs roles per track (D1) |
-| Field-level rules | `'own'`, `writableFields`, `immutable`, `uniqueOn` | Edits and deletes are enforced by the schema, not the page |
+| Field-level rules | `'own'`, `writableFields`, `immutable`, `uniqueOn`, `maxLength` | Edits and deletes are enforced by the schema, not the page |
 | Writes that need a check | server actions | A schema's `create` is yes or no; it cannot say "only members of this track" (D2) |
 | Playheads | presence rooms (`usePresenceRoom`) | Volatile state that should not be stored |
 | Audio | file storage (`useR2Files`, `appFiles`) | Private files, streamed by a worker route after a membership check (D3) |
@@ -154,6 +154,9 @@ stopped for a go-ahead after each one.
     the landing page. The mp3 content-type problem was found only after
     deploying. One new test could collide with another running in parallel;
     fixed before commit.
+  - Milestone 6: edits had no server-side length limit. The agent listed it
+    as a defect instead of fixing it unasked; fixed afterwards on request
+    (D36).
 
 ## 6. What I verified or changed
 
@@ -169,6 +172,8 @@ On record in DECISIONS.md:
 - Approved creating two test accounts.
 - Chose the recipient of the email test call.
 - Supplied the demo track.
+- After the draft of this note, told the agent to add the server-side
+  length limit on edits (D36).
 - No corrections are logged for Milestones 3, 4 and 5: none were reported
   to the agent.
 
@@ -203,13 +208,17 @@ Not verified:
 - "Make it again" keeping ticked items: built, but no test runs the AI twice.
 - The crash screen, the "browser could not play the audio" message and the
   "storage full" message: built, never triggered.
+- The length limit on track title edits: in the schema, but the app has no
+  rename control to test it with. The limits on comment and checklist edits
+  are tested.
 
 Known defects and edges:
 
 - A reviewer who joins sees the track in an already-open Tracks tab only
   after a reload (the SDK issue in section 4).
-- A forged edit can make a comment longer than 1000 characters: the limit is
-  enforced on create and in the edit box, not on the edit itself.
+- An edit refused for being too long fails silently: the page shows the long
+  text until the next reload. Only an edit sent around the page can be
+  refused (D36).
 - The per-user daily caps are read-then-write, so a burst across many tracks
   could pass a few extra. The per-track limit is exact.
 - Presence is per user, not per tab.
@@ -227,14 +236,12 @@ Not built:
 
 ## 8. What next
 
-1. Server-side length limits on comment and title edits (a `maxLength` on
-   the columns).
-2. Report the `UserId` / `userId` mismatch to DeepSpace; until it is fixed,
+1. Report the `UserId` / `userId` mismatch to DeepSpace; until it is fixed,
    refresh the Tracks list when the user's membership rows change.
-3. Voice-note comments: record in the browser, transcribe with the catalog's
+2. Voice-note comments: record in the browser, transcribe with the catalog's
    speech-to-text, store the transcript as the comment body.
-4. Let the owner delete any comment on their track, and let a reviewer leave.
-5. Keyboard control of the waveform, and a design pass.
-6. Range requests on the audio route, so the 20 MB cap can be raised.
-7. Version comparison: upload a new mix of the same track and carry the open
+3. Let the owner delete any comment on their track, and let a reviewer leave.
+4. Keyboard control of the waveform, and a design pass.
+5. Range requests on the audio route, so the 20 MB cap can be raised.
+6. Version comparison: upload a new mix of the same track and carry the open
    checklist items across.

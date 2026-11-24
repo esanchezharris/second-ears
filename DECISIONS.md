@@ -216,7 +216,8 @@ AI (Milestone 4). Also `getUserColor`, `useUserLookup`, `useAsyncResource`,
 - Peaks use the first audio channel only.
 - Editing a comment's text goes straight through the schema rule, which has
   no length limit on the server (the 1000-character limit is enforced on
-  create and in the edit box, not on a forged edit).
+  create and in the edit box, not on a forged edit). Closed after
+  Milestone 6: see D36.
 - The track title is the file name; renaming is not built yet.
 - No keyboard control of the waveform yet (play/pause button only).
 - Visual design is still the scaffold theme.
@@ -674,5 +675,49 @@ server actions; denied record writes surface as toasts.
 
 ### Corrections by Emilio (Milestone 6)
 
-- None yet. (To be filled in when he edits the note.)
+- No edits to the note reported yet.
+- 2026-11-24: asked whether to add the server-side length limit on edits
+  now, he answered "Yes, fix it". That is D36 below.
 
+---
+
+## After Milestone 6 — length limits on edits
+
+### D36. `maxLength` on the three text columns a user can edit
+
+- **Decision.** `comments.body` (1000), `tracks.title` (120) and
+  `checklist_items.title` (200) carry `maxLength` in their schemas, using
+  the same constants as the server actions and the edit boxes.
+- **What it closes.** The actions checked length on create, and the edit
+  boxes limited typing, but an edit goes straight from the browser to the
+  record. A user could send their own comment or checklist item an edit of
+  any length around the page.
+- **Alternatives.** (a) Route edits through server actions: three more
+  actions that repeat what the schema can say in one word. (b) Leave it and
+  list it as a known defect, which is what Milestone 6 did.
+- **Why.** The platform checks `maxLength` on every write, including edits
+  and server-side writes, so the rule sits next to the other column rules.
+  The actions keep their own checks because their messages are friendlier
+  than the platform's refusal.
+- **Docs note.** The schema reference describes `maxLength` as a staging
+  prototype missing from SDK 0.42.3. The installed SDK is 0.44.2: the option
+  is in its types and the test below shows it enforced. Local only so far;
+  see Verification.
+- **Scope note.** The Milestone 6 report said "two columns". There are
+  three editable text columns; the track title was the one left out.
+- **Known edge.** A refused edit is silent: the page shows the long text
+  until the next reload, because edits are sent without waiting for the
+  server's answer. Only an edit sent around the page can be refused, so no
+  message was added.
+
+### Verification (D36)
+
+- `tests/session.spec.ts`: removes the edit box's own limit, saves a
+  1001-character comment, reloads, and finds the comment unchanged; then
+  saves exactly 1000 characters and sees it arrive in a second tab.
+- Control: the same test with the limit taken out of the comments schema
+  fails at the reload check. The limit was then put back.
+- `tests/revision.spec.ts`: the same for a 201-character checklist title.
+- `npx deepspace test run all`: 11 unit and 21 browser tests pass.
+- Not verified: the track title limit (the app has no rename control to
+  send an edit from), and all of it on the live URL.

@@ -11,6 +11,7 @@
  */
 
 import type { CollectionSchema, RolePermissions } from 'deepspace/schema'
+import { MAX_TITLE_LENGTH } from '../types'
 
 /** Signed-in users get these rules whether their app role is member or admin,
  *  so the app owner's account has no special access to other people's tracks. */
@@ -28,7 +29,13 @@ export const tracksSchema: CollectionSchema = {
     // Same value as the record id. Exists as a column so `teamField` can use it.
     { name: 'trackId', storage: 'text', interpretation: 'plain', required: true, immutable: true },
     { name: 'ownerId', storage: 'text', interpretation: 'plain', required: true, immutable: true },
-    { name: 'title', storage: 'text', interpretation: 'plain', required: true },
+    {
+      name: 'title',
+      storage: 'text',
+      interpretation: 'plain',
+      required: true,
+      maxLength: MAX_TITLE_LENGTH,
+    },
     // Key of the audio file in the owner's private file storage.
     { name: 'audioKey', storage: 'text', interpretation: 'plain', required: true, immutable: true },
     { name: 'durationSec', storage: 'number', interpretation: 'plain', required: true },

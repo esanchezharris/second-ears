@@ -64,7 +64,8 @@ export type User = {
   name: string
 }
 
-/** Limits enforced by the server actions and mirrored in the UI. */
+/** Limits enforced by the server actions and mirrored in the UI. The three
+ *  text lengths are also `maxLength` on their schema columns, which covers edits. */
 export const MAX_AUDIO_BYTES = 20 * 1024 * 1024
 export const MAX_TITLE_LENGTH = 120
 export const MAX_COMMENT_LENGTH = 1000

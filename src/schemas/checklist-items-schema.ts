@@ -11,6 +11,7 @@
  */
 
 import type { CollectionSchema, RolePermissions } from 'deepspace/schema'
+import { MAX_CHECKLIST_TITLE_LENGTH } from '../types'
 
 const rules: RolePermissions = {
   read: 'own',
@@ -25,7 +26,13 @@ export const checklistItemsSchema: CollectionSchema = {
   columns: [
     { name: 'trackId', storage: 'text', interpretation: 'plain', required: true, immutable: true },
     { name: 'ownerId', storage: 'text', interpretation: 'plain', required: true, immutable: true },
-    { name: 'title', storage: 'text', interpretation: 'plain', required: true },
+    {
+      name: 'title',
+      storage: 'text',
+      interpretation: 'plain',
+      required: true,
+      maxLength: MAX_CHECKLIST_TITLE_LENGTH,
+    },
     {
       name: 'priority',
       storage: 'text',

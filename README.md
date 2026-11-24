@@ -74,7 +74,7 @@ platform's `users`.
 |---|---|
 | Sign-in | `AuthGate`, `useAuth`, verified JWTs in the worker |
 | Data and live updates | records with `useQuery` / `useMutations`; realtime sync is built in |
-| Permissions | schema rules: `'team'` reads through `team_members`, `'own'` writes, `writableFields`, `uniqueOn`, `immutable` |
+| Permissions | schema rules: `'team'` reads through `team_members`, `'own'` writes, `writableFields`, `uniqueOn`, `immutable`, `maxLength` |
 | Per-track roles | `team_members` rows, written only by server actions |
 | Presence playheads | `usePresenceRoom`, with a membership check in the worker route |
 | Audio files | file storage: `useR2Files` in the browser, `appFiles` in the worker |

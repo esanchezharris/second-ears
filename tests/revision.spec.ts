@@ -122,6 +122,18 @@ test('the owner turns comments into a checklist; nobody else can', async ({ user
       await expect(items).toHaveCount(itemCount)
     })
 
+    await test.step('a reword longer than the limit is refused by the schema', async () => {
+      const tooLong = 'x'.repeat(201)
+      await items.first().getByRole('button', { name: 'Edit' }).click()
+      const editBox = owner.page.getByLabel('Edit checklist item')
+      await editBox.evaluate((box) => box.removeAttribute('maxlength'))
+      await editBox.fill(tooLong)
+      await owner.page.getByRole('button', { name: 'Save' }).click()
+      await owner.page.reload()
+      await expect(items).toHaveCount(itemCount)
+      await expect(owner.page.getByText(tooLong)).toHaveCount(0)
+    })
+
     await test.step('the owner can tick, reword and delete items, and it sticks', async () => {
       await items.first().getByTestId('checklist-checkbox').click()
       await expect(owner.page.getByTestId('revision-summary')).toContainText(`1 of ${itemCount} done`)

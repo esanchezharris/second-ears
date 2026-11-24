@@ -55,6 +55,26 @@ test('upload shows a waveform, comments sync live, and a stranger is locked out'
     await expect(liveComment).toBeVisible()
     await expect(liveComment).toContainText(/0:0[23]/)
 
+    // An edit sent around the edit box's own limit: one character too many.
+    // The schema's `maxLength` refuses it, so after a reload the comment is unchanged.
+    const tooLong = 'x'.repeat(1001)
+    await owner.page.getByRole('button', { name: 'Edit' }).click()
+    const editBox = owner.page.getByLabel('Edit comment')
+    await editBox.evaluate((box) => box.removeAttribute('maxlength'))
+    await editBox.fill(tooLong)
+    await owner.page.getByRole('button', { name: 'Save' }).click()
+    await owner.page.reload()
+    await expect(owner.page.getByTestId('comment').filter({ hasText: body })).toBeVisible()
+    await expect(owner.page.getByText(tooLong)).toHaveCount(0)
+    await expect(secondTab.getByText(tooLong)).toHaveCount(0)
+
+    // An edit of exactly the limit is accepted and reaches the other tab.
+    const atLimit = 'y'.repeat(1000)
+    await owner.page.getByRole('button', { name: 'Edit' }).click()
+    await owner.page.getByLabel('Edit comment').fill(atLimit)
+    await owner.page.getByRole('button', { name: 'Save' }).click()
+    await expect(secondTab.getByTestId('comment')).toHaveText(new RegExp(atLimit))
+
     // A signed-in user who is not a member gets nothing: no page, audio, or write.
     await stranger.page.goto(`/t/${trackId}`)
     await expect(stranger.page.getByText('Track not found')).toBeVisible()
