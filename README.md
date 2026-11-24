@@ -9,7 +9,8 @@ Live: https://second-ears.app.space
 
 Built on [DeepSpace](https://docs.deep.space) as a take-home exercise. Every
 decision, with the alternatives and the reasons, is in
-[DECISIONS.md](DECISIONS.md).
+[DECISIONS.md](DECISIONS.md). The summary of what was built, what is
+unfinished and what comes next is in [SUBMISSION.md](SUBMISSION.md).
 
 ## Try it in two minutes
 

@@ -643,5 +643,36 @@ server actions; denied record writes surface as toasts.
 ### Corrections by Emilio (Milestone 5)
 
 - He supplied the demo audio file.
-- None otherwise yet. (To be filled in after his check.)
+- None otherwise reported. He started Milestone 6 on 2026-11-24 without
+  reporting the result of a live check.
+
+---
+
+## Milestone 6 — submission note
+
+### D35. The note is a draft file in the repo, with Emilio's section left as prompts
+
+- **Decision.** `SUBMISSION.md` is written from this log, the code and the
+  test runs. Section 6 ("What I verified or changed") lists what is on
+  record here and then asks questions; it contains no answers.
+- **Why.** The brief: "do not invent it". The agent has no record of any
+  live check by Emilio, so it cannot describe one.
+- **The main tradeoff named in the note** is authorization living in two
+  places (schema rules for reads and edits, server actions for creates; D1
+  and D2). It was chosen over the rate-limit and audio-download tradeoffs
+  because it shapes every collection and every action.
+- **Not done in this milestone, on purpose.** The note lists a server-side
+  length limit on edits as the first next step. It was not slipped in here:
+  the milestone is the note.
+
+### Verification (Milestone 6)
+
+- Every number and D-reference in the note was checked against the code,
+  this log and `npx deepspace app usage` (eight actions, 11 unit and 21
+  browser tests, spend under $0.02).
+- `npx deepspace test run` (smoke and API) passes.
+
+### Corrections by Emilio (Milestone 6)
+
+- None yet. (To be filled in when he edits the note.)
 
