@@ -425,9 +425,11 @@ for three comments and $0.0012 for six. The account is on the free plan:
 ### D25. The scaffold's browser-facing integration proxy is closed
 
 - **Finding.** The scaffold registers `/api/integrations/:name/:endpoint`.
-  In this SDK version it requires sign-in by default (the brief expected
-  anonymous callers to be allowed; the scaffold has since tightened that).
-  But any signed-in user could still call any owner-billed integration
+  The docs say owner-billed integrations accept anonymous callers; the
+  route as scaffolded in this project already refused signed-out callers
+  unless an integration set `anonymous: true`, so that part of the brief's
+  warning was covered. But any signed-in user could still call any
+  owner-billed integration
   through it with no limit: every model, and `email/send` to any address
   with any text, from the app's sender.
 - **Decision.** The route now answers 404. AI and email are reachable only
