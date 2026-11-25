@@ -7,7 +7,7 @@
 
 Live: https://second-ears.app.space
 Code map and run instructions: [README.md](README.md)
-Every decision with its alternatives: [DECISIONS.md](DECISIONS.md) (D1–D36)
+Every decision with its alternatives: [DECISIONS.md](DECISIONS.md) (D1–D37)
 
 ## 1. What was built
 
@@ -29,7 +29,8 @@ The six steps of the core path, as deployed:
 5. **Revision list.** The owner clicks "Make revision list". The AI reads the
    comment records, groups the ones about the same issue, and writes
    checklist records that link back to their source comments. The owner can
-   tick, reword and delete them.
+   tick, reword and delete them. Making the list again keeps the items the
+   owner finished or reworded and replaces the rest.
 6. **Email.** The owner gets one email when a reviewer leaves the first
    comment on a track, and none after that.
 
@@ -154,6 +155,10 @@ stopped for a go-ahead after each one.
     the landing page. The mp3 content-type problem was found only after
     deploying. One new test could collide with another running in parallel;
     fixed before commit.
+  - Milestone 4: making the list again replaced an item the owner had
+    reworded. The agent had chosen that and logged it as an edge (D27);
+    the live check on 2026-11-25 reported it as a failure and it was
+    changed (D37).
   - Milestone 6: edits had no server-side length limit. The agent listed it
     as a defect instead of fixing it unasked; fixed afterwards on request
     (D36).
@@ -174,21 +179,24 @@ On record in DECISIONS.md:
 - Supplied the demo track.
 - After the draft of this note, told the agent to add the server-side
   length limit on edits (D36).
+- Had the live checks run on 2026-11-25 by another AI assistant, signed in
+  as me (owner) and as the Reviewer test account, and passed the results to
+  the agent. Thirteen checks passed and one failed: making the list again
+  overwrote an item that had been reworded. The agent fixed it (D37). The table is
+  in DECISIONS.md under "Live checks, 2026-11-25".
 - No corrections are logged for Milestones 3, 4 and 5: none were reported
   to the agent.
 
 To fill in:
 
-- [ ] **Two-browser check (Milestone 3).** Did you open the live app in two
-  browsers as two users? Which accounts? Did playheads move, comments arrive
-  live, and the removed reviewer get locked out?
-- [ ] **Sign-in hand-off.** Did a signed-out visitor who opened an invite
-  link get carried through to the track after signing in?
-- [ ] **Revision list on live.** Did you run it on a real track? Was the
-  grouping right? Anything you would not act on?
-- [ ] **The email.** Did the first-comment email arrive, once? Did a second
-  comment stay silent?
-- [ ] **Demo on live.** Did the demo track play? In which browsers?
+- [ ] **The live checks.** An assistant ran them, not you. Say so. Which of
+  them did you watch, or repeat yourself? Did you see the email in your own
+  inbox?
+- [ ] **After the fix.** Did you reword an item on the live site, wait five
+  minutes, click "Make it again", and see your wording kept?
+- [ ] **Revision list quality.** Was the grouping right on a real track?
+  Anything you would not act on?
+- [ ] **Demo on live.** Did you hear the demo track play? In which browsers?
 - [ ] **Demo comments.** Which of the nine did you rewrite to be true of the
   track?
 - [ ] **Code you changed by hand.** Files and why. If none, say none.
@@ -202,15 +210,17 @@ To fill in:
 
 Not verified:
 
-- Every signed-in flow on the live URL, unless section 6 says otherwise.
-- A real first-comment email sent by the app. The test call proved the
-  integration; the app's own path is covered by unit tests with fake tools.
-- "Make it again" keeping ticked items: built, but no test runs the AI twice.
+- The live checks of 2026-11-25 covered the core path with two accounts in
+  one browser (table in DECISIONS.md). Not covered: wav upload on live,
+  mobile, other browsers, more than two people at once.
+- "Make it again" keeping a reworded item, on the live URL. It was fixed
+  after the live checks and proven locally with two real AI runs; no
+  permanent test runs the AI twice.
+- Whether the nine demo comments are true of the track.
+- The length limits on edits, on the live URL. The limit on track title
+  edits is untested anywhere: the app has no rename control to test it with.
 - The crash screen, the "browser could not play the audio" message and the
   "storage full" message: built, never triggered.
-- The length limit on track title edits: in the schema, but the app has no
-  rename control to test it with. The limits on comment and checklist edits
-  are tested.
 
 Known defects and edges:
 

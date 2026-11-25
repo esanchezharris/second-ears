@@ -6,7 +6,8 @@
  *
  * Rows are created by the `makeRevisionList` server action (the AI writes
  * them). After that the owner works on them directly:
- *   update: 'own'  → tick an item off (`status`) or reword it (`title`)
+ *   update: 'own'  → tick an item off (`status`) or reword it (`title`,
+ *                    which also sets `reworded`)
  *   delete: 'own'  → remove an item
  */
 
@@ -18,7 +19,7 @@ const rules: RolePermissions = {
   create: false,
   update: 'own',
   delete: 'own',
-  writableFields: ['title', 'status'],
+  writableFields: ['title', 'status', 'reworded'],
 }
 
 export const checklistItemsSchema: CollectionSchema = {
@@ -49,6 +50,13 @@ export const checklistItemsSchema: CollectionSchema = {
       storage: 'text',
       interpretation: { kind: 'select', options: ['open', 'done'] },
       default: 'open',
+    },
+    // 'yes' once the owner has reworded the item. Making the list again keeps it.
+    {
+      name: 'reworded',
+      storage: 'text',
+      interpretation: { kind: 'select', options: ['no', 'yes'] },
+      default: 'no',
     },
   ],
   ownerField: 'ownerId',

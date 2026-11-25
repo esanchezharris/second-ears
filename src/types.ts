@@ -48,6 +48,8 @@ export type ChecklistItem = {
   /** Record ids of the comments this item was made from. */
   commentIds: string[]
   status: 'open' | 'done'
+  /** 'yes' once the owner has changed the title by hand. */
+  reworded: 'no' | 'yes'
 }
 
 /** A paid AI run or email, logged before it is made. See paid-calls-schema.ts. */

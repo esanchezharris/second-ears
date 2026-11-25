@@ -81,11 +81,13 @@ export const makeRevisionList: ActionHandler<Env> = async ({ userId, params, too
   }
   if (claim === 'unavailable') return fail('Could not check the usage limit. Try again.')
 
-  // Making a list again replaces the open items and keeps the finished ones.
+  // Making a list again keeps the items the owner has worked on (finished or
+  // reworded) and replaces the rest.
   const existing = await tools.query<ChecklistItem>('checklist_items', { where: { trackId } })
   const before = existing.success ? existing.data.records : []
-  const doneTitles = before.filter((item) => item.data.status === 'done').map((item) => item.data.title)
-  const openIds = before.filter((item) => item.data.status !== 'done').map((item) => item.recordId)
+  const kept = before.filter((item) => item.data.status === 'done' || item.data.reworded === 'yes')
+  const keptTitles = kept.map((item) => item.data.title)
+  const replacedIds = before.filter((item) => !kept.includes(item)).map((item) => item.recordId)
 
   // "reviewer 1", "reviewer 2", … so the model can see when several people
   // agree, without being given anyone's name or user id.
@@ -131,6 +133,7 @@ export const makeRevisionList: ActionHandler<Env> = async ({ userId, params, too
         timeSec: Math.min(...sourceIds.map((id) => commentsById.get(id)!.timeSec)),
         commentIds: sourceIds,
         status: 'open',
+        reworded: 'no',
       }
       const result = await tools.create('checklist_items', item)
       if (!result.success) return { error: 'Could not save the item.' }
@@ -139,9 +142,9 @@ export const makeRevisionList: ActionHandler<Env> = async ({ userId, params, too
     },
   })
 
-  const alreadyDone =
-    doneTitles.length > 0
-      ? `\n\nThe producer has already finished these. Do not add them again:\n- ${doneTitles.join('\n- ')}`
+  const alreadyListed =
+    keptTitles.length > 0
+      ? `\n\nThe producer has already finished or reworded these items. They stay on the list. Do not add them again:\n- ${keptTitles.join('\n- ')}`
       : ''
 
   try {
@@ -150,7 +153,7 @@ export const makeRevisionList: ActionHandler<Env> = async ({ userId, params, too
     await generateText({
       model: ai(MODEL),
       system: INSTRUCTIONS,
-      prompt: `Make the revision checklist for this track.${alreadyDone}`,
+      prompt: `Make the revision checklist for this track.${alreadyListed}`,
       tools: { listComments, addChecklistItem },
       stopWhen: isStepCount(MAX_STEPS),
       maxOutputTokens: 4000,
@@ -162,8 +165,8 @@ export const makeRevisionList: ActionHandler<Env> = async ({ userId, params, too
 
   if (created === 0) return fail('The AI found nothing to change in the comments.')
 
-  // Only now that the new items exist, remove the old open ones.
-  for (const itemId of openIds) await tools.remove('checklist_items', itemId)
+  // Only now that the new items exist, remove the old ones they replace.
+  for (const itemId of replacedIds) await tools.remove('checklist_items', itemId)
 
   return { success: true, data: { created } }
 }

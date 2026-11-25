@@ -467,7 +467,8 @@ for three comments and $0.0012 for six. The account is on the free plan:
 - **Edge.** If a run fails half-way, the new items it already wrote sit next
   to the old open ones until the next successful run.
 - **Edge.** An open item the owner reworded is replaced like any other open
-  item.
+  item. Changed on 2026-11-25 after the live check reported it as a
+  failure: see D37.
 
 ### D28. `checklist_items` is owner-only in the schema
 
@@ -721,3 +722,89 @@ server actions; denied record writes surface as toasts.
 - `npx deepspace test run all`: 11 unit and 21 browser tests pass.
 - Not verified: the track title limit (the app has no rename control to
   send an edit from), and all of it on the live URL.
+
+---
+
+## Live checks, 2026-11-25
+
+### Reported by Emilio
+
+Emilio had the live checks run on https://second-ears.app.space by another
+AI assistant (Grok) at his direction, and passed its write-up to the agent.
+Two sessions: his own account as owner (Google sign-in) and the "Reviewer"
+test account (email sign-in, private window). Test track: a 20-second mp3
+tone. The agent did not watch any of this; the results below are as
+reported.
+
+| Check | Result |
+|---|---|
+| Upload an mp3, waveform appears | pass (the upload showed "Uploading…" for about 20 s) |
+| Invite link makes the second account a reviewer and lands on the track | pass |
+| Each window shows the other's playhead with name and colour | pass |
+| Reviewer comment appears for the owner without a refresh | pass, in about 1 s |
+| Removing the reviewer locks their open page | pass, in under 1 s, no reload |
+| Replaced invite link opened signed out, then sign-in | pass: landed on the track; the old link stopped working |
+| First reviewer comment sends one email to the owner | pass: one email, in the inbox, correct subject and sender |
+| Second reviewer comment, and owner comments, send none | pass |
+| Make revision list | pass: about 6 s, items link back to their comments |
+| Tick, reword and delete survive a reload | pass |
+| "Make it again" after 5 minutes keeps the ticked item | pass |
+| "Make it again" turns a new comment into a new item | pass |
+| "Make it again" keeps a reworded item | **fail**: the edit was overwritten |
+| Demo session opens and plays | pass: time advanced, no console errors |
+
+Not checked by that run: whether the demo comments are true of the track
+(needs someone to listen), wav upload, mobile, other browsers, more than two
+users at once.
+
+Two things the agent takes from the report beyond pass and fail:
+
+- The failure was not a bug in the code: D27 chose that behaviour and listed
+  it as an edge, and the page said "replaces the open items". The check
+  shows the choice was wrong. An owner's own wording should not be
+  overwritten by a regeneration. Fixed in D37.
+- A 20-second mp3 taking about 20 s to upload is slower than the local
+  tests, where a 6-second wav takes a second or two. Cause unknown: it may
+  be the platform's file storage from that network, or the automation
+  driving the browser. Not investigated.
+
+### D37. "Make it again" keeps reworded items too
+
+- **Decision.** `checklist_items` has a new column `reworded` (`no` / `yes`,
+  default `no`). Saving a changed title sets it to `yes`. `makeRevisionList`
+  now keeps every item that is finished or reworded, tells the model those
+  titles are already on the list, and replaces only the rest.
+- **Alternatives.** (a) Keep D27 and only make the warning louder: the owner
+  still loses work to a button whose point is to save work. (b) Never
+  replace anything, only add items for comments no item covers: untouched
+  items would never be regrouped when new comments arrive. (c) Store the
+  AI's original title and compare: no extra write from the page, but rows
+  made before the change would all look reworded.
+- **Why.** It is the smallest change that matches what an owner expects:
+  what I touched is mine, the rest is the AI's to redo. It reuses the path
+  finished items already took.
+- **Known edge.** The model is told the kept titles, not which comments they
+  cover. If a reworded title no longer says what the problem was, the model
+  may add a second item for the same comments.
+- **Known edge.** The owner can set `reworded` on their own items directly.
+  It only protects their own item from their own regeneration.
+
+### Verification (D37)
+
+- One-off local check with two real AI runs five minutes apart (about
+  $0.002): make a list, reword the kick item, add a comment about the snare,
+  wait for the next window, make it again. The reworded item was still
+  there, once; no second kick item was added; the snare comment became a new
+  item. The check was deleted afterwards because it waits up to five
+  minutes; no permanent test runs the AI twice.
+- `npx deepspace test run all`: three runs. The first failed one scaffold
+  test (`collab.spec.ts`, the API status page, which looks for a loading
+  message shown for 100 ms); that test passed when run on its own. The
+  second run failed and its output was not kept, so the cause is unknown.
+  The third passed: 11 unit and 21 browser tests.
+- Not verified: the fix on the live URL.
+
+### Corrections by Emilio (2026-11-25)
+
+- Reported the reworded-item failure from the live check. The agent changed
+  D27's behaviour in response (D37).

@@ -6,7 +6,8 @@
  * writes arrive here through a live query, like comments do.
  *
  * Ticking, rewording and deleting go straight through `useMutations`. The
- * schema lets only the owner do that, and only to `status` and `title`.
+ * schema lets only the owner do that, and only to `status`, `title` and the
+ * `reworded` mark that goes with a new title.
  *
  * Only the owner is shown this panel, and only the owner can read the rows.
  */
@@ -66,7 +67,7 @@ export function RevisionList({ trackId, comments, onSelectComment }: Props) {
   let summary = 'AI groups the comments into a prioritized checklist. Only you can see it.'
   if (comments.length === 0) summary = 'Once there are comments, AI can turn them into a checklist.'
   if (items.length > 0) {
-    summary = `${doneCount} of ${items.length} done. Making it again replaces the open items and keeps the finished ones.`
+    summary = `${doneCount} of ${items.length} done. Making it again keeps the items you finished or reworded and replaces the rest.`
   }
 
   return (
@@ -133,7 +134,10 @@ function ChecklistRow({
 
   function saveTitle() {
     if (draft === null || !draft.trim()) return
-    void put(item.recordId, { title: draft.trim() })
+    // `reworded` tells "Make it again" that this wording is the owner's: keep it.
+    if (draft.trim() !== item.data.title) {
+      void put(item.recordId, { title: draft.trim(), reworded: 'yes' })
+    }
     setDraft(null)
   }
 
