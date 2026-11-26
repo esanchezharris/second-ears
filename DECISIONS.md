@@ -830,3 +830,22 @@ Two things the agent takes from the report beyond pass and fail:
   appears only in commit author lines.
 - **What becomes public with it.** The demo mp3 (already downloadable from
   the live site), this log and the submission note.
+
+### Emilio's answers for section 6 of the note (2026-11-26)
+
+He asked the agent to put the section 6 questions to him. His answers, as
+given:
+
+- Live checks he saw himself: playheads and comments, the email, the
+  revision list. The rest he knows from his assistant's report.
+- He heard the demo track play on the live site.
+- Code read closely enough to explain line by line: the schemas.
+- Changed by hand: nothing.
+- Overruled or redirected the agent beyond the choices on record: no.
+- Revision list grouping: looked right.
+- What he would do differently: give more product direction.
+- Demo comments: leave them unchecked and say so in the note.
+
+The agent wrote section 6 from these answers and removed the draft box. The
+sentence about not having read the server actions or the session screen is
+the agent's reading of his not selecting them.

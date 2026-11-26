@@ -1,9 +1,4 @@
-# Second Ears — submission note (DRAFT)
-
-> **Draft written by the agent from DECISIONS.md.** Everything below is taken
-> from that log, the code and the test runs. Section 6 is yours, Emilio: it
-> holds prompts, not answers, because the agent does not know what you
-> checked or changed. Delete this box and the prompts before you submit.
+# Second Ears — submission note
 
 Live: https://second-ears.app.space
 Code: https://github.com/esanchezharris/second-ears
@@ -166,11 +161,10 @@ stopped for a go-ahead after each one.
 
 ## 6. What I verified or changed
 
-> **Emilio: this section is yours.** What is on record is listed first. The
-> prompts are questions only you can answer. If the answer to one is "I did
-> not check", say that.
+The agent wrote this section from my answers to its questions. Sections 1 to
+5, 7 and 8 it wrote from DECISIONS.md, the code and the test runs.
 
-On record in DECISIONS.md:
+**Decisions I made**
 
 - Approved the Milestone 0 plan as written.
 - Chose DeepSpace source over GitHub source, and signed in to the CLI
@@ -178,35 +172,49 @@ On record in DECISIONS.md:
 - Approved creating two test accounts.
 - Chose the recipient of the email test call.
 - Supplied the demo track.
-- After the draft of this note, told the agent to add the server-side
+- After the first draft of this note, told the agent to add the server-side
   length limit on edits (D36).
-- Had the live checks run on 2026-11-25 by another AI assistant, signed in
-  as me (owner) and as the Reviewer test account, and passed the results to
-  the agent. Thirteen checks passed and one failed: making the list again
-  overwrote an item that had been reworded. The agent fixed it (D37). The table is
-  in DECISIONS.md under "Live checks, 2026-11-25".
-- Chose a public GitHub copy of the code for reviewers (D38).
-- No corrections are logged for Milestones 3, 4 and 5: none were reported
-  to the agent.
+- Chose a public GitHub copy of the code (D38).
+- Chose to leave the demo comments as they are (see below).
 
-To fill in:
+Apart from these I did not overrule or redirect the agent. I accepted its
+proposals at each checkpoint.
 
-- [ ] **The live checks.** An assistant ran them, not you. Say so. Which of
-  them did you watch, or repeat yourself? Did you see the email in your own
-  inbox?
-- [ ] **After the fix.** Did you reword an item on the live site, wait five
-  minutes, click "Make it again", and see your wording kept?
-- [ ] **Revision list quality.** Was the grouping right on a real track?
-  Anything you would not act on?
-- [ ] **Demo on live.** Did you hear the demo track play? In which browsers?
-- [ ] **Demo comments.** Which of the nine did you rewrite to be true of the
-  track?
-- [ ] **Code you changed by hand.** Files and why. If none, say none.
-- [ ] **Code you read line by line.** Which files can you explain without
-  notes? Which did you skim?
-- [ ] **Where you overruled or redirected the agent.** Anything beyond the
-  list above.
-- [ ] **What you would have done differently** in how you directed it.
+**What I verified**
+
+- The live checks on 2026-11-25 were run by another AI assistant at my
+  direction, signed in as me (owner) and as the Reviewer test account.
+  Thirteen passed and one failed. The table is in DECISIONS.md under "Live
+  checks, 2026-11-25".
+- I saw three of them with my own eyes: the playheads and live comments, the
+  first-comment email in my own inbox, and the AI revision list. The others
+  I know from the assistant's report.
+- The one failure: making the list again overwrote an item that had been
+  reworded. I passed it to the agent, which fixed it (D37). The fix has not
+  been rechecked on the live site.
+- I heard the demo track play on the live site.
+- The revision list's grouping looked right to me.
+
+**What I did not verify**
+
+- The nine demo comments. The agent wrote them without hearing the track
+  and I have not checked them against it. They are examples.
+- No corrections are logged for Milestones 3, 4 and 5, because I reported
+  none to the agent at the time.
+
+**What I changed by hand**
+
+- Nothing. Every commit came from the agent at my direction.
+
+**Code I have read**
+
+- The schemas (`src/schemas`), closely enough to explain line by line. Not
+  yet the server actions or the session screen.
+
+**What I would do differently**
+
+- Give more product direction: make more of the product decisions myself
+  instead of accepting the agent's defaults.
 
 ## 7. What is unfinished
 
@@ -218,7 +226,8 @@ Not verified:
 - "Make it again" keeping a reworded item, on the live URL. It was fixed
   after the live checks and proven locally with two real AI runs; no
   permanent test runs the AI twice.
-- Whether the nine demo comments are true of the track.
+- Whether the nine demo comments are true of the track. Left unchecked by
+  choice; they are examples.
 - The length limits on edits, on the live URL. The limit on track title
   edits is untested anywhere: the app has no rename control to test it with.
 - The crash screen, the "browser could not play the audio" message and the
