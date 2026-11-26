@@ -808,3 +808,25 @@ Two things the agent takes from the report beyond pass and fail:
 
 - Reported the reworded-item failure from the live check. The agent changed
   D27's behaviour in response (D37).
+- Asked whether to make a GitHub copy of the code, he answered "Yes,
+  public" (D38).
+
+### D38. A public, read-only copy of the code on GitHub
+
+- **Decision.** The code is copied to
+  https://github.com/esanchezharris/second-ears by
+  `scripts/publish-github.sh`. DeepSpace source stays the one place the app
+  deploys from (the choice made in Milestone 1). The script works on a
+  temporary clone and adds no GitHub remote to the working checkout.
+- **Why a script and not `git remote add`.** A deploy looks at the
+  checkout's remotes when it decides where source lives. Keeping GitHub out
+  of the checkout leaves that untouched.
+- **Commit emails are rewritten.** The commits here carry Emilio's personal
+  email as author. The copy replaces it with his GitHub no-reply address, so
+  commit hashes on GitHub differ from the ones in DeepSpace source. The
+  script refuses to push if a personal address survives.
+- **Checked before publishing.** No secrets, tokens, `.dev.vars` or test
+  account passwords in the files or anywhere in the history; his email
+  appears only in commit author lines.
+- **What becomes public with it.** The demo mp3 (already downloadable from
+  the live site), this log and the submission note.

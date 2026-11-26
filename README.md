@@ -6,6 +6,8 @@ sees each other's playheads and new comments live. One click turns the
 comments into a prioritized revision checklist that the owner ticks off.
 
 Live: https://second-ears.app.space
+Code: https://github.com/esanchezharris/second-ears (a read-only copy; the
+app deploys from DeepSpace source)
 
 Built on [DeepSpace](https://docs.deep.space) as a take-home exercise. Every
 decision, with the alternatives and the reasons, is in
@@ -125,6 +127,9 @@ Things to know before running the tests:
 
 If the demo audio is ever replaced, regenerate its waveform with
 `node scripts/make-demo-peaks.mjs` (needs ffmpeg).
+
+To update the public copy on GitHub after new commits, run
+`scripts/publish-github.sh` (needs the GitHub CLI, signed in).
 
 ## Known limits
 

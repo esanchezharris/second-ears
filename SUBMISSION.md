@@ -6,8 +6,9 @@
 > checked or changed. Delete this box and the prompts before you submit.
 
 Live: https://second-ears.app.space
+Code: https://github.com/esanchezharris/second-ears
 Code map and run instructions: [README.md](README.md)
-Every decision with its alternatives: [DECISIONS.md](DECISIONS.md) (D1–D37)
+Every decision with its alternatives: [DECISIONS.md](DECISIONS.md) (D1–D38)
 
 ## 1. What was built
 
@@ -184,6 +185,7 @@ On record in DECISIONS.md:
   the agent. Thirteen checks passed and one failed: making the list again
   overwrote an item that had been reworded. The agent fixed it (D37). The table is
   in DECISIONS.md under "Live checks, 2026-11-25".
+- Chose a public GitHub copy of the code for reviewers (D38).
 - No corrections are logged for Milestones 3, 4 and 5: none were reported
   to the agent.
 
@@ -242,7 +244,6 @@ Not built:
 - Renaming a track (the title is the file name).
 - Keyboard control of the waveform.
 - A visual design of its own: the look is the scaffold's default theme.
-- A read-only copy of the code on GitHub for reviewers.
 
 ## 8. What next
 
